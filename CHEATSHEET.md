@@ -9,8 +9,10 @@ Referencia rápida de toda la infraestructura. Diseñado para ser leído por un 
 1. **Descarga** las transcripciones de clases desde showcases privados de Vimeo (protegidos con contraseña)
 2. **Guarda** cada transcripción como archivo Markdown en carpetas organizadas por semestre y materia
 3. **Ingesta** el texto en Pinecone (base vectorial) para búsqueda semántica
-4. **Expone** una API Flask local que recibe preguntas, busca chunks relevantes vía n8n/Pinecone, y sintetiza respuestas con GPT-4o-mini
-5. **Sirve** una UI React local (localhost:5174) con chat semántico, visor de transcripciones y navegación desde fuentes citadas
+4. **Sirve** una UI React estática en Netlify con chat semántico, visor de transcripciones y navegación desde fuentes citadas
+5. **Sintetiza** respuestas vía n8n (workflow `ORT Chat Agent`): recibe la query, busca en Pinecone, genera respuesta con GPT-4 y devuelve `{ answer, sources[] }` al frontend
+
+> **Cloud vs Local**: `cloud_production/` es el build serverless. El scraper corre en GitHub Actions (nightly). El frontend está en Netlify. El chat API es n8n. No se requiere Mac encendida para que el sistema funcione.
 
 ---
 
@@ -62,18 +64,17 @@ Cada archivo `.md` tiene este formato:
 
 ## Comandos
 
-### Correr el scraper manualmente (todas las materias)
+### Correr el scraper manualmente (desde cloud_production/)
 ```bash
-python3 /Users/lolescaldaferro/Antigravity/Vimeo/vimeo_scraper.py
+cd /Users/lolescaldaferro/Antigravity/Vimeo/cloud_production
+python3 vimeo_scraper.py
 ```
-- Loopea las 5 materias de `config.json`
-- Skipea archivos ya existentes (no re-descarga)
-- Ingesta en Pinecone solo los nuevos
+- Lee API keys de `config.json` (local) o de variables de entorno (GitHub Actions)
+- Loopea todas las materias configuradas, skipea archivos ya existentes
+- Ingesta en Pinecone solo los nuevos, regenera `transcripts_index.json`
 
-### Ingestar transcripciones existentes en Pinecone (una sola vez)
-```bash
-python3 /Users/lolescaldaferro/Antigravity/Vimeo/ingest_existing.py
-```
+### Triggerear el scraper en GitHub Actions manualmente
+En GitHub → repo `ort-classes` → Actions → "Vimeo Scraper" → Run workflow.
 
 ### Ver el log del cron
 ```bash
@@ -84,44 +85,47 @@ tail -f /Users/lolescaldaferro/Antigravity/Vimeo/cron.log
 ```bash
 crontab -l
 ```
-Salida esperada:
+Salida esperada (dos entradas):
 ```
+# Legacy local scraper (requiere Mac encendida)
 0 20 * * 1-4 /Library/Frameworks/Python.framework/Versions/3.13/bin/python3 /Users/lolescaldaferro/Antigravity/Vimeo/vimeo_scraper.py >> /Users/lolescaldaferro/Antigravity/Vimeo/cron.log 2>&1
+
+# Sync local desde GitHub después de que Actions termina
+20 23 * * 1-4 /bin/bash /Users/lolescaldaferro/Antigravity/Vimeo/cloud_production/sync-local.sh
 ```
 
-### Correr la UI local
+### Sync local manual (bajar transcripts nuevos desde GitHub)
 ```bash
-# Terminal 1 — API backend
-cd /Users/lolescaldaferro/Antigravity/Vimeo
-python3 api_server.py
-# Escucha en http://localhost:5001
-
-# Terminal 2 — Frontend
-cd /Users/lolescaldaferro/Antigravity/Vimeo/ui
-npm run dev
-# Abre http://localhost:5174
+cd /Users/lolescaldaferro/Antigravity/Vimeo/cloud_production
+git pull
+rsync -a transcripts/ /Users/lolescaldaferro/Antigravity/Vimeo/transcripts/
 ```
 
-### Instalar dependencias Python
+### Instalar dependencias Python (cloud scraper)
 ```bash
-pip install requests beautifulsoup4 flask flask-cors openai
+pip install requests beautifulsoup4 openai
 ```
-No hay dependencias extra para Pinecone: se llama vía `requests` directamente.
+Sin Flask, sin Playwright. Pinecone se llama vía `requests` directamente.
 
-### Instalar dependencias UI
+### Build de la UI (Netlify lo corre automáticamente en cada push)
 ```bash
-cd /Users/lolescaldaferro/Antigravity/Vimeo/ui
+cd /Users/lolescaldaferro/Antigravity/Vimeo/cloud_production/ui
 npm install
+npm run build  # copia transcripts/ a public/ y compila con Vite
 ```
 
 ---
 
-## Cron (ejecución automática)
+## Cron / Automatización
 
-- **Horario**: lunes a jueves a las **20:00 hora local** (UYT, UTC-3)
-- **Requisito**: el Mac debe estar **encendido y despierto** a esa hora
-- **Logs**: se acumulan en `cron.log`
-- Para que no falle por suspensión: Preferencias del Sistema → Batería → desactivar suspensión automática en noches de semana
+| Qué | Cuándo | Dónde corre |
+|---|---|---|
+| GitHub Actions scraper | Lun-Jue 23:00 UTC (20:00 UYT) | GitHub (nube, siempre activo) |
+| `sync-local.sh` | Lun-Jue 23:20 UTC (20:20 UYT) | Mac (solo si está encendida) |
+
+- **GitHub Actions**: corre `vimeo_scraper.py` en Ubuntu, commitea nuevos transcripts al repo → Netlify rebuilds automáticamente
+- **sync-local.sh**: hace `git pull` + `rsync` para que la Mac tenga los transcripts nuevos en local
+- **Logs**: se acumulan en `/Users/lolescaldaferro/Antigravity/Vimeo/cron.log`
 
 ---
 
@@ -148,54 +152,50 @@ npm install
 
 ---
 
-## Arquitectura completa
+## Arquitectura completa (Cloud Production)
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  INGESTA (automática, lun-jue 20:00)                │
+│  INGESTA (automática, lun-jue 23:00 UTC)            │
 │                                                     │
-│  Mac cron                                           │
+│  GitHub Actions (Ubuntu)                            │
 │    → vimeo_scraper.py                               │
 │       → Autentica en Vimeo (password)               │
 │       → Descarga VTT (subtítulos)                   │
 │       → Convierte VTT → texto plano                 │
-│       → Guarda .md en transcripts/                  │
+│       → Guarda .md en cloud_production/transcripts/ │
 │       → Divide en chunks de ~3000 chars             │
 │       → OpenAI text-embedding-3-small               │
 │       → Upsert a Pinecone (índice: ort-clases)      │
+│       → Regenera transcripts_index.json             │
+│    → git commit + push → Netlify rebuilds           │
+│                                                     │
+│  Mac cron 23:20 UTC (si está encendida)             │
+│    → sync-local.sh: git pull + rsync al local       │
 └─────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────┐
-│  UI LOCAL (localhost:5174)                          │
+│  UI PRODUCCIÓN (Netlify CDN)                        │
 │                                                     │
-│  React + Vite (npm run dev)                         │
-│    → Chat: pregunta → POST /api/chat                │
-│    → Transcripciones: GET /api/transcripts          │
+│  React + Vite (build estático)                      │
+│    → Transcripciones: fetch /transcripts_index.json │
+│    → Archivo: fetch /transcripts/{sem}/{sub}/{file} │
+│    → Chat: POST n8n webhook/ort-chat-agent          │
 │    → Fuente citada → abre transcript con highlight  │
 │                                                     │
-│  Flask API (python3 api_server.py, puerto 5001)     │
-│    → /api/chat                                      │
-│       → POST n8n webhook (RAG search)               │
-│       → Recibe top 8 chunks de Pinecone             │
-│       → GPT-4o-mini sintetiza la respuesta          │
-│       → Devuelve { answer, sources[] }              │
-│    → /api/transcripts                               │
-│       → Lee filesystem transcripts/                 │
-│       → Devuelve árbol semestre/materia/archivos    │
-│    → /api/transcripts/<path>                        │
-│       → Devuelve contenido de un .md               │
+│  (sin Flask, sin servidor Node, sin cron local)     │
 └─────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────┐
-│  BÚSQUEDA RAG (on-demand, vía n8n)                  │
+│  CHAT RAG (on-demand, vía n8n)                      │
 │                                                     │
-│  Flask api_server.py                                │
-│    → POST https://n8n.flowai.it.com/               │
-│             webhook/ort-rag-search                  │
-│       body: { "query": "tu pregunta" }              │
-│    → n8n: OpenAI embedding de la query              │
-│    → n8n: Pinecone "Get Many" (top chunks)          │
-│    → Devuelve chunks con metadata                   │
+│  n8n workflow "ORT Chat Agent"                      │
+│    → POST webhook/ort-chat-agent  { query }         │
+│    → HTTP request → webhook/ort-rag-search          │
+│    → n8n: OpenAI embedding + Pinecone top-8 chunks  │
+│    → Code: formatea sources[] con semester/subject  │
+│    → OpenAI GPT-4: sintetiza respuesta              │
+│    → Devuelve { answer, sources[] }                 │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -233,7 +233,7 @@ npm install
 }
 ```
 
-**Importante**: `semester` viene como número (`"5"`), no como nombre de directorio (`semestre_5`). `api_server.py` lo convierte antes de enviarlo al frontend.
+**Importante — problema conocido de datos**: `ingest.mjs` (el script Node.js original) guardó `semester: "N/A"` en Pinecone para todos los archivos cuyos headers no tenían `**Semester:**` (todos los generados por el scraper Python). `Code Formatear ORT` incluye un fallback de subject→semester para corregirlo. `TranscriptsView.tsx` también resuelve el path buscando en el árbol si el semester es inválido.
 
 **Para qué sirve**: es la "memoria de clases" que le pasás al LLM. El LLM llama este endpoint, recibe los fragmentos relevantes, y los usa como contexto para responder. Sin esto, el LLM respondería de memoria general; con esto, responde basado en lo que se dijo en tus clases de ORT.
 
@@ -256,10 +256,11 @@ npm install
 | Archivo UI | Propósito |
 |---|---|
 | `ui/src/pages/Index.tsx` | Raíz: maneja `activeView`, `chatMessages` (persistente) y `transcriptDeepLink` |
-| `ui/src/components/dashboard/ChatView.tsx` | Vista de chat: input, mensajes, source cards clicables |
-| `ui/src/components/dashboard/TranscriptsView.tsx` | Vista de transcripciones: árbol semestre/materia, visor con highlight |
+| `ui/src/components/dashboard/ChatView.tsx` | Vista de chat: input, mensajes, source cards clicables, POST a n8n |
+| `ui/src/components/dashboard/TranscriptsView.tsx` | Vista de transcripciones: árbol semestre/materia, visor con highlight, fallback de path |
 | `ui/src/components/dashboard/DashboardSidebar.tsx` | Navegación lateral: Chat con mis clases / Transcripciones |
-| `ui/vite.config.ts` | Proxy `/api` → `http://localhost:5001` |
+| `ui/vite.config.ts` | Sin proxy — todos los requests van directo (Netlify CDN o n8n) |
+| `ui/public/_headers` | CORS headers para Netlify (`Access-Control-Allow-Origin: *`) |
 
 **Flujo de deep-link** (clic en fuente citada):
 1. `ChatView` llama `onOpenTranscript(semester, subject, file, excerpt)`

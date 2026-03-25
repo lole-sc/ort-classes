@@ -2,6 +2,17 @@
 
 All notable changes to the ORT Vimeo Scraper & RAG Knowledge Base project will be documented in this file.
 
+## [Unreleased] - 2026-03-24 (Phase 4 — Bug Fixes)
+
+### Fixed
+- **Transcript deep-link 404 (semester "N/A")**: `ingest.mjs` stored `semester: "N/A"` in Pinecone for any transcript whose header lacked a `**Semester:**` field — which is all files created by the Python scraper. Pinecone could return those vectors and the frontend constructed `/transcripts/N/A/...` URLs that always 404'd. Fixed in `TranscriptsView.tsx`: when the semester/subject from a deep-link don't exist in the loaded tree, `openFile` now searches the tree to resolve the correct path. Root cause also documented in `n8n_chat_workflow.json` (`Code Formatear ORT` now uses a subject→semester fallback map so future responses carry the correct `semestre_N` value).
+- **Transcript filename URL encoding**: `fetch()` calls for transcript files used raw filenames containing spaces (e.g. `18-03-2026 - FACS-...`). Added `encodeURIComponent(file)` to ensure Netlify receives a properly encoded path.
+
+### Added
+- **Local sync cron job**: Created `sync-local.sh` (runs `git pull` + `rsync` from the production repo into the Mac's local `transcripts/` folder). Cron entry added at `20 23 * * 1-4` (23:20 UTC = 20:20 UYT), 20 minutes after GitHub Actions completes its nightly run.
+
+---
+
 ## [Unreleased] - 2026-03-24 (Phase 4: Cloud Migration)
 
 ### Added
