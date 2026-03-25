@@ -1,1 +1,86 @@
-{}
+{
+  "semestre_3": {
+    "matematica_financiera": {
+      "label": "Matemática Financiera",
+      "files": [
+        "30-09-2025 - FACS-2506-Matemtica financiera-Giordano lvaro-75268-LM N2A MF.md",
+        "29-09-2025 - FACS-2506-Matemtica financiera-Giordano lvaro-75268-LM N2A MF Parte 2.md",
+        "29-09-2025 - FACS-2506-Matemtica financiera-Giordano lvaro-75268-LM N2A MF Parte 1.md",
+        "28-10-2025 - FACS-2506-Matemtica financiera-Giordano lvaro-75268-LM N2A MF.md",
+        "27-10-2025 - FACS-2506-Matemtica financiera-Giordano lvaro-75268-LM N2A MF.md",
+        "26-08-2025 - FACS-2506-Matemtica financiera-Giordano lvaro-75268-LM N2A MF.md",
+        "25-11-2025 - FACS-2506-Matemtica financiera-Giordano lvaro-75268-LM N2A MF.md",
+        "24-11-2025 - FACS-2506-Matemtica financiera-Giordano lvaro-75268-LM N2A MF.md",
+        "21-10-2025 - FACS-2506-Matemtica financiera-Giordano lvaro-75268-LM N2A MF.md",
+        "20-10-2025 - FACS-2506-Matemtica financiera-Giordano lvaro-75268-LM N2A MF.md",
+        "19-08-2025 - FACS-2506-Matemtica financiera-Giordano lvaro-75268-LM N2A MF.md",
+        "18-11-2025 - FACS-2506-Matemtica financiera-Giordano lvaro-75268-LM N2A MF.md",
+        "18-08-2025 - FACS-2506-Matemtica financiera-Giordano lvaro-75268-LM N2A MF.md",
+        "17-11-2025 - FACS-2506-Matemtica financiera-Giordano lvaro-75268-LM N2A MF.md",
+        "16-09-2025 - FACS-2506-Matemtica financiera-Giordano lvaro-75268-LM N2A MF.md",
+        "15-09-2025 - FACS-2506-Matemtica financiera-Giordano lvaro-75268-LM N2A MF.md",
+        "14-10-2025 - FACS-2506-Matemtica financiera-Giordano lvaro-75268-LM N2A MF.md",
+        "13-10-2025 - FACS-2506-Matemtica financiera-Giordano lvaro-75268-LM N2A MF.md",
+        "11-11-2025 - FACS-2506-Matemtica financiera-Giordano lvaro-75268-LM N2A MF.md",
+        "10-11-2025 - FACS-2506-Matemtica financiera-Giordano lvaro-75268-LM N2A MF.md",
+        "09-09-2025 - FACS-2506-Matemtica financiera-Giordano lvaro-75268-LM N2A MF.md",
+        "08-09-2025 - FACS-2506-Matemtica financiera-Giordano lvaro-75268-LM N2A MF.md",
+        "07-10-2025 - FACS-2506-Matemtica financiera-Giordano lvaro-75268-LM N2A MF.md",
+        "06-10-2025 - FACS-2506-Matemtica financiera-Giordano lvaro-75268-LM N2A MF.md",
+        "04-11-2025 - FACS-2506-Matemtica financiera-Giordano lvaro-75268-LM N2A MF.md",
+        "03-11-2025 - FACS-2506-Matemtica financiera-Giordano lvaro-75268-LM N2A MF.md",
+        "02-12-2025 - FACS-2506-Matemtica financiera-Giordano lvaro-75268-LM N2A MF.md",
+        "02-09-2025 - FACS-2506-Matemtica financiera-Giordano lvaro-75268-LM N2A MF.md",
+        "01-12-2025 - FACS-2506-Matemtica financiera-Giordano lvaro-75268-LM N2A MF.md",
+        "01-09-2025 - FACS-2506-Matemtica financiera-Giordano lvaro-75268-LM N2A MF.md"
+      ]
+    }
+  },
+  "semestre_5": {
+    "business_intelligence": {
+      "label": "Business Intelligence",
+      "files": [
+        "18-03-2026 - FACS-7990-Business intelligence-Baudo Rodrigo-77457-LN_M5A-T0326_BI.md",
+        "17-03-2026 - FACS-7990-Business intelligence-Baudo Rodrigo-77457-LN_M5A-T0326_BI.md",
+        "11-03-2026 - FACS-7990-Business intelligence-Baudo Rodrigo-77457-LN_M5A-T0326_BI.md",
+        "10-03-2026 - FACS-7990-Business intelligence-Baudo Rodrigo-77457-LN_M5A-T0326_BI.md"
+      ]
+    },
+    "contabilidad_y_costos": {
+      "label": "Contabilidad y Costos",
+      "files": [
+        "19-03-2026 - FACS-7971-Contabilidad y costos-Secchi Carlos-77372-LN_M5A-T0326_CCAND.md",
+        "17-03-2026 - FACS-7971-Contabilidad y costos-Secchi Carlos-77372-LN_M5A-T0326_CCAND.md",
+        "12-03-2026 - FACS-7971-Contabilidad y costos-Secchi Carlos-77372-LN_M5A-T0326_CCAND.md",
+        "10-03-2026 - FACS-7971-Contabilidad y costos-Secchi Carlos-77372-LN_M5A-T0326_CCAND.md"
+      ]
+    },
+    "ecommerce_y_servicios": {
+      "label": "E-commerce y Servicios",
+      "files": [
+        "23-03-2026 - FACS-7972-E commerce-Caamao Renata-77472-LN_M5A-T0326_E-CSD.md",
+        "18-03-2026 - FACS-7972-E commerce-Caamao Renata-77472-LN_M5A-T0326_E-CSD.md",
+        "16-03-2026 - FACS-7972-E commerce-Caamao Renata-77472-LN_M5A-T0326_E-CSD.md",
+        "11-03-2026 - FACS-7972-E commerce-Caamao Renata-77472-LN_M5A-T0326_E-CSD.md",
+        "09-03-2026 - FACS-7972-E commerce-Caamao Renata-77472-LN_M5A-T0326_E-CSD.md"
+      ]
+    },
+    "economia_y_gestion": {
+      "label": "Economía y Gestión",
+      "files": [
+        "19-03-2026 - FACS-8843-Econ. y gest. de plataformas-Campbell Nicole-77474-LN_M5A-T0326_EYGDPL.md",
+        "17-03-2026 - FACS-8843-Econ. y gest. de plataformas-Campbell Nicole-77474-LN_M5A-T0326_EYGDPL.md",
+        "12-03-2026 - FACS-8843-Econ. y gest. de plataformas-Campbell Nicole-77474-LN_M5A-T0326_EYGDPL.md",
+        "10-03-2026 - FACS-8843-Econ. y gest. de plataformas-Campbell Nicole-77474-LN_M5A-T0326_EYGDPL.md"
+      ]
+    },
+    "project_management": {
+      "label": "Project Management",
+      "files": [
+        "23-03-2026 - FACS-8920-Project Management y Business-Pazos German-77500-LN_M9A0326_PMGB.md",
+        "16-03-2026 - FACS-8920-Project Management y Business-Pazos German-77500-LN_M9A0326_PMGB.md",
+        "09-03-2026 - FACS-8920-Project Management y Business-Pazos German-77500-LN_M9A0326_PMGB.md"
+      ]
+    }
+  }
+}
