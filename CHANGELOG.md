@@ -2,6 +2,37 @@
 
 All notable changes to the ORT Vimeo Scraper & RAG Knowledge Base project will be documented in this file.
 
+## [WIP] - 2026-03-27 (Playwright scraper — VTT extraction pendiente)
+
+### Estado actual
+El scraper HTTP (requests-only) falla con 401 en todos los showcases porque Vimeo migró a rendering client-side (Next.js + Cloudflare). Playwright sí puede autenticar y obtener la lista de videos vía intercepción de `api.vimeo.com/albums/{id}/videos`.
+
+**Problema sin resolver**: `player.vimeo.com/video/{id}/config` devuelve `text_tracks: []` a menos que se navegue a la página del video dentro de la sesión autenticada. Se intentaron tres enfoques:
+1. `page.goto(video_url, wait_until='domcontentloaded', timeout=60s)` → corría ~1 hora (timeout por video sumado)
+2. `page.evaluate(fetch(player config))` → 0 text_tracks (CORS / falta token firmado)
+3. `page.goto(video_url, wait_until='commit', timeout=20s)` + polling 12s → todavía tarda 30+ min
+
+**Hipótesis del problema 3**: `wait_until='commit'` puede timeout igual en GitHub Actions (Ubuntu lento). El player config XHR se dispara DESPUÉS del `commit` (cuando el JS de Vimeo ejecuta), por lo que el polling de 12s puede no alcanzar para GitHub Actions.
+
+### Próximo paso recomendado
+Usar `page.wait_for_response()` con un timeout explícito apuntando al pattern del config URL, en vez de polling manual. Ejemplo:
+```python
+with page.expect_response(
+    lambda r: f'/video/{vid_id}/config' in r.url and r.status == 200,
+    timeout=30000
+) as resp_info:
+    page.goto(video_url, wait_until='commit', timeout=30000)
+config = resp_info.value.json()
+```
+Esto espera específicamente al XHR del player config (no al DOM completo). Más eficiente y determinístico.
+
+### Cambios realizados hasta ahora (en rama main, pusheados)
+- `vimeo_scraper.py`: agregado `_extract_vtt_playwright()` con intercepción de videos API. `extract_vtt_from_showcase()` intenta Playwright primero, HTTP como fallback.
+- `scraper.yml`: agregado `playwright` a pip install + step `playwright install chromium --with-deps`
+- `notebooklm_sync.py`: reescrito para usar `notebooklm-mcp` (5/5 notebooks OK)
+
+---
+
 ## [Unreleased] - 2026-03-27 (NotebookLM sync fix — notebooklm-mcp)
 
 ### Fixed
