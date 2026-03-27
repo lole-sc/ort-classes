@@ -303,22 +303,26 @@ def _extract_vtt_playwright(showcase_url, password, subject_name, semester):
                 print(f"    [~] Skipping (already exists)")
                 continue
 
-            # Navigate to video page — triggers player config request
-            video_url = f"https://vimeo.com/showcase/{showcase_id}/video/{vid_id}"
+            # Fetch player config via JS eval inside the authenticated browser context.
+            # This avoids page navigation (slow/timeout-prone) and uses the session
+            # cookies already obtained from showcase auth.
             try:
-                page.goto(video_url, wait_until='domcontentloaded', timeout=60000)
+                config = page.evaluate(f"""
+                    async () => {{
+                        const r = await fetch(
+                            'https://player.vimeo.com/video/{vid_id}/config',
+                            {{credentials: 'include'}}
+                        );
+                        if (!r.ok) return null;
+                        return r.json();
+                    }}
+                """)
             except Exception as e:
-                print(f"    [!] Navigation error: {e}")
-                continue
-            page.wait_for_timeout(5000)
-
-            config = player_configs.get(vid_id)
-            if not config:
-                page.wait_for_timeout(3000)
-                config = player_configs.get(vid_id)
+                print(f"    [!] player config fetch error: {e}")
+                config = None
 
             if not config:
-                print(f"    [!] No player config captured — skipping")
+                print(f"    [!] No player config — skipping")
                 continue
 
             text_tracks = config.get('request', {}).get('text_tracks', [])
