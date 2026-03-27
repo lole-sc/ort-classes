@@ -2,34 +2,73 @@
 
 All notable changes to the ORT Vimeo Scraper & RAG Knowledge Base project will be documented in this file.
 
-## [WIP] - 2026-03-27 (Playwright scraper — VTT extraction pendiente)
+## [Fixed] - 2026-03-27 (Transcripts limpios — duplicados y fechas incorrectas eliminados)
 
-### Estado actual
-El scraper HTTP (requests-only) falla con 401 en todos los showcases porque Vimeo migró a rendering client-side (Next.js + Cloudflare). Playwright sí puede autenticar y obtener la lista de videos vía intercepción de `api.vimeo.com/albums/{id}/videos`.
+### Estado final semestre 5 (27-03-2026)
 
-**Problema sin resolver**: `player.vimeo.com/video/{id}/config` devuelve `text_tracks: []` a menos que se navegue a la página del video dentro de la sesión autenticada. Se intentaron tres enfoques:
-1. `page.goto(video_url, wait_until='domcontentloaded', timeout=60s)` → corría ~1 hora (timeout por video sumado)
-2. `page.evaluate(fetch(player config))` → 0 text_tracks (CORS / falta token firmado)
-3. `page.goto(video_url, wait_until='commit', timeout=20s)` + polling 12s → todavía tarda 30+ min
+| Materia | Clases | Fechas |
+|---|---|---|
+| Business Intelligence | 6 | 10,11,17,18,24,25/03 |
+| Contabilidad y Costos | 6 | 10,12,17,19,24,26/03 |
+| E-commerce y Servicios | 6 | 09,11,16,18,23,25/03 |
+| Economía y Gestión | 6 | 10,12,17,19,24,26/03 |
+| Project Management | 3 | 09,16,23/03 |
 
-**Hipótesis del problema 3**: `wait_until='commit'` puede timeout igual en GitHub Actions (Ubuntu lento). El player config XHR se dispara DESPUÉS del `commit` (cuando el JS de Vimeo ejecuta), por lo que el polling de 12s puede no alcanzar para GitHub Actions.
+### Bugs resueltos
 
-### Próximo paso recomendado
-Usar `page.wait_for_response()` con un timeout explícito apuntando al pattern del config URL, en vez de polling manual. Ejemplo:
+**1. Duplicados por encoding de ñ**: El scraper viejo guardaba `Caamao` (sin ñ) por sanitización agresiva. El scraper nuevo preserva ñ → nombres diferentes para el mismo video → skip-check no los detectaba → dos archivos por fecha.
+- Fix: borrados los 4 archivos `Caamao` de ecommerce (09, 11, 16, 18/03).
+- Fix estructural: `save_transcript()` ahora hace skip por prefijo de fecha (`startswith("DD-MM-YYYY - ")`) en vez de ruta exacta. Cambios futuros de encoding no generan duplicados.
+
+**2. Archivos con fecha incorrecta (`27-03-2026`)**: Commits del bot en runs anteriores re-agregaron archivos `27-03-2026 - ... DD-MM-YYYY.md` que sobrevivieron nuestros deletes por race condition con GitHub Actions.
+- Fix: borrados los 5 archivos restantes (uno por materia) via `git rm` + commit directo.
+
+**3. Ecommerce 25-03 faltante**: El archivo correcto estaba en el `27-03-2026` erróneo que borramos. El siguiente run del scraper lo re-capturó con nombre correcto.
+
+**4. Cosmético**: `23-03-2026` de ecommerce tenía `Caamao` en el nombre (único remanente del scraper viejo). Renombrado a `Caamaño` para consistencia.
+
+---
+
+## [Fixed] - 2026-03-27 (Playwright scraper — polling reemplazado por expect_response)
+
+### Qué estaba roto y por qué
+Vimeo migró sus showcases a renderizado client-side (Next.js + Cloudflare). El scraper HTTP (`requests`) recibía una shell HTML vacía — 0 videos encontrados. Playwright sí puede autenticar porque abre un browser real que ejecuta el JavaScript de Vimeo.
+
+El flujo Playwright tiene dos partes:
+1. **Lista de videos**: interceptando `api.vimeo.com/albums/{id}/videos` (funciona bien)
+2. **Config del player** (contiene los subtítulos): requiere navegar a la URL de cada video dentro de la sesión autenticada para que Vimeo genere un token firmado y dispare el XHR a `player.vimeo.com/video/{id}/config`
+
+**El problema específico**: la versión anterior esperaba esa respuesta con un loop manual de polling (12 iteraciones × 1 segundo = hasta 12s por video). En GitHub Actions (Ubuntu) ese tiempo no alcanzaba — el XHR llegaba después de los 12s → 0 subtítulos extraídos.
+
+### Fix aplicado (2026-03-27)
+Reemplazado el polling manual por `page.expect_response()`, la API nativa de Playwright para esperar respuestas HTTP. Se resuelve en cuanto llega el XHR — sin tiempo fijo:
+
 ```python
+# Antes: polling de hasta 12s por video
+for _ in range(12):
+    config = player_configs.get(vid_id)
+    if config: break
+    page.wait_for_timeout(1000)
+
+# Ahora: determinístico, termina cuando llega el XHR (~1-2s)
 with page.expect_response(
-    lambda r: f'/video/{vid_id}/config' in r.url and r.status == 200,
-    timeout=30000
+    lambda r, v=vid_id: f'/video/{v}/config' in r.url and r.status == 200,
+    timeout=30000,
 ) as resp_info:
     page.goto(video_url, wait_until='commit', timeout=30000)
 config = resp_info.value.json()
 ```
-Esto espera específicamente al XHR del player config (no al DOM completo). Más eficiente y determinístico.
 
-### Cambios realizados hasta ahora (en rama main, pusheados)
-- `vimeo_scraper.py`: agregado `_extract_vtt_playwright()` con intercepción de videos API. `extract_vtt_from_showcase()` intenta Playwright primero, HTTP como fallback.
-- `scraper.yml`: agregado `playwright` a pip install + step `playwright install chromium --with-deps`
-- `notebooklm_sync.py`: reescrito para usar `notebooklm-mcp` (5/5 notebooks OK)
+Nota: `v=vid_id` como default arg en el lambda es necesario para capturar el valor por valor (no referencia) dentro del loop.
+
+### Estado del run (2026-03-27 ~15:51 UTC)
+Workflow `23655012904` en ejecución con el fix. Monitorear con:
+```bash
+gh run view --job=68909810643 --repo lorenzoscaldaferro/ort-classes
+```
+
+### Pendiente
+- Configurar `TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID` como GitHub Secrets (el step de notificación de fallos ya está en `scraper.yml`, solo faltan los secrets).
 
 ---
 
