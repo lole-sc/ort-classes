@@ -26,11 +26,11 @@ interface TranscriptsViewProps {
 
 // Notebook URLs — fill in after completing the NotebookLM setup (see NOTEBOOKLM_SETUP.md)
 const SUBJECT_NOTEBOOKS: Record<string, string> = {
-  business_intelligence:   "https://notebooklm.google.com/notebook/PLACEHOLDER_BI",
-  economia_y_gestion:      "https://notebooklm.google.com/notebook/PLACEHOLDER_EG",
-  contabilidad_y_costos:   "https://notebooklm.google.com/notebook/PLACEHOLDER_CC",
-  project_management:      "https://notebooklm.google.com/notebook/PLACEHOLDER_PM",
-  ecommerce_y_servicios:   "https://notebooklm.google.com/notebook/PLACEHOLDER_ES",
+  business_intelligence:   "https://notebooklm.google.com/notebook/cbce59b5-716e-468d-ab36-0eb8d4d8f4ee",
+  economia_y_gestion:      "https://notebooklm.google.com/notebook/f4a5fc4f-1c88-4e48-9eeb-8e1b0255ef6f",
+  contabilidad_y_costos:   "https://notebooklm.google.com/notebook/b86a8539-d297-4a66-9256-175177727d33",
+  project_management:      "https://notebooklm.google.com/notebook/740cffdb-615e-418b-b522-7762d3f0123a",
+  ecommerce_y_servicios:   "https://notebooklm.google.com/notebook/1737c8bd-5cc5-400d-a3b0-7159d5de7468",
   matematica_financiera:   "https://notebooklm.google.com/notebook/PLACEHOLDER_MF",
 };
 
