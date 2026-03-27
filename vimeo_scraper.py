@@ -304,22 +304,24 @@ def _extract_vtt_playwright(showcase_url, password, subject_name, semester):
                 print(f"    [~] Skipping (already exists)")
                 continue
 
-            # Navigate to video page — the browser JS loads the player, which triggers
-            # a signed request to player.vimeo.com/video/{id}/config (captured above).
-            # Use 'commit' so we don't wait for full page render, just the HTTP response.
+            # Navigate to video page and wait deterministically for the player config XHR.
+            # page.expect_response() resolves the moment the matching response arrives,
+            # so we don't burn 12s of fixed polling — the run finishes in <5 min total.
             video_url = f"https://vimeo.com/showcase/{showcase_id}/video/{vid_id}"
-            try:
-                page.goto(video_url, wait_until='commit', timeout=20000)
-            except Exception:
-                pass  # timeout OK — player config may still arrive via XHR
-
-            # Poll for the player config (arrives when JS loads the video player)
             config = None
-            for _ in range(12):
-                config = player_configs.get(vid_id)
-                if config:
-                    break
-                page.wait_for_timeout(1000)
+            try:
+                with page.expect_response(
+                    lambda r, v=vid_id: f'/video/{v}/config' in r.url and r.status == 200,
+                    timeout=30000,
+                ) as resp_info:
+                    page.goto(video_url, wait_until='commit', timeout=30000)
+                try:
+                    config = resp_info.value.json()
+                except Exception:
+                    config = None
+            except Exception as e:
+                print(f"    [!] Timeout waiting for player config: {e}")
+                config = None
 
             if not config:
                 print(f"    [!] No player config captured — skipping")
