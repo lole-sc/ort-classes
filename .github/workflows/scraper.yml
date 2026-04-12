@@ -50,7 +50,7 @@ jobs:
         env:
           NOTEBOOKLM_AUTH_JSON: ${{ secrets.NOTEBOOKLM_AUTH_JSON }}
           NOTEBOOKLM_NOTEBOOK_IDS: ${{ secrets.NOTEBOOKLM_NOTEBOOK_IDS }}
-          NETLIFY_URL: ${{ secrets.NETLIFY_URL }}
+          VERCEL_URL: ${{ secrets.VERCEL_URL }}
         run: python notebooklm_sync.py
 
       - name: Notify on failure

@@ -11,7 +11,7 @@ Requiere estas env vars (GitHub Secrets):
   NOTEBOOKLM_AUTH_JSON    — Contenido JSON de ~/.notebooklm-mcp/auth.json
                             (generado localmente con: notebooklm-mcp-auth)
   NOTEBOOKLM_NOTEBOOK_IDS — JSON map: {"subject_name": "notebook_id", ...}
-  NETLIFY_URL             — URL base del sitio (sin trailing slash)
+  VERCEL_URL              — URL base del sitio Vercel (sin trailing slash)
                             Ej: https://ort-classes.vercel.app
 
 Si alguna de estas env vars no está seteada, el script sale limpiamente
@@ -35,12 +35,12 @@ def load_config() -> dict | None:
     """Carga y valida la configuración desde env vars. Retorna None si faltan vars."""
     auth_json = os.environ.get('NOTEBOOKLM_AUTH_JSON', '').strip()
     notebook_ids_raw = os.environ.get('NOTEBOOKLM_NOTEBOOK_IDS', '').strip()
-    site_url = os.environ.get('NETLIFY_URL', '').strip().rstrip('/')
+    site_url = os.environ.get('VERCEL_URL', '').strip().rstrip('/')
 
     missing = [k for k, v in {
         'NOTEBOOKLM_AUTH_JSON': auth_json,
         'NOTEBOOKLM_NOTEBOOK_IDS': notebook_ids_raw,
-        'NETLIFY_URL': site_url,
+        'VERCEL_URL': site_url,
     }.items() if not v]
 
     if missing:
