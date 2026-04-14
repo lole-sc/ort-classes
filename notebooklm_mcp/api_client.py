@@ -340,6 +340,7 @@ class NotebookLMClient:
         self.csrf_token = csrf_token
         self._client: httpx.Client | None = None
         self._session_id = session_id
+        self._bl: str = ""  # Build label; populated by _refresh_auth_tokens()
 
         # Conversation cache for follow-up queries
         # Key: conversation_id, Value: list of ConversationTurn objects
@@ -406,6 +407,12 @@ class NotebookLMClient:
             sid_match = re.search(r'"FdrFJe":"([^"]+)"', html)
             if sid_match:
                 self._session_id = sid_match.group(1)
+
+            # Extract build label (bl) - changes with each NotebookLM deploy
+            # Try common patterns; fall back to env var / hardcoded default
+            bl_match = re.search(r'"(boq_labs-tailwind-frontend_[^"]+)"', html)
+            if bl_match:
+                self._bl = bl_match.group(1)
 
             # Cache the extracted tokens to avoid re-fetching the page on next request
             self._update_cached_tokens()
@@ -482,7 +489,7 @@ class NotebookLMClient:
         params = {
             "rpcids": rpc_id,
             "source-path": source_path,
-            "bl": os.environ.get("NOTEBOOKLM_BL", "boq_labs-tailwind-frontend_20260108.06_p0"),
+            "bl": self._bl or os.environ.get("NOTEBOOKLM_BL", "boq_labs-tailwind-frontend_20260108.06_p0"),
             "hl": "en",
             "rt": "c",
         }
@@ -1470,7 +1477,7 @@ class NotebookLMClient:
 
         self._reqid_counter += 100000  # Increment counter
         url_params = {
-            "bl": os.environ.get("NOTEBOOKLM_BL", "boq_labs-tailwind-frontend_20260108.06_p0"),
+            "bl": self._bl or os.environ.get("NOTEBOOKLM_BL", "boq_labs-tailwind-frontend_20260108.06_p0"),
             "hl": "en",
             "_reqid": str(self._reqid_counter),
             "rt": "c",

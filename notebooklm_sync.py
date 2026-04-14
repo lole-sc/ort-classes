@@ -137,11 +137,10 @@ def run(config: dict) -> None:
         print("  el secret NOTEBOOKLM_AUTH_JSON en GitHub con el nuevo auth.json")
         return
 
-    client = NotebookLMClient(
-        cookies=cookies,
-        csrf_token=csrf_token,
-        session_id=session_id,
-    )
+    # No pasamos csrf_token ni session_id: el cliente hace un page fetch fresco
+    # para extraer el CSRF token actual, session_id, y el build label (bl) del
+    # frontend de NotebookLM — los valores cacheados en auth.json expiran rápido.
+    client = NotebookLMClient(cookies=cookies)
 
     success = 0
     total = len(config['notebook_ids'])
