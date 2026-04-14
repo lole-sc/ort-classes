@@ -74,13 +74,32 @@ def sync_notebook(client, notebook_id: str, subject: str, raw_url: str) -> bool:
     try:
         # 1. Listar fuentes existentes con sus URLs
         existing = client.get_notebook_sources_with_types(notebook_id)
+        print(f"  [DEBUG] {len(existing)} fuente(s) encontradas:")
+        for src in existing:
+            print(f"    id={src.get('id')!r} | type={src.get('source_type_name')!r} | url={src.get('url')!r} | title={src.get('title')!r}")
 
         # 2. Borrar fuentes que apuntan a nuestros raw files (cualquier host)
+        # Match primario: URL contiene nuestro path
+        # Match fallback: url vacía pero title contiene el path o "netlify.app"
+        # (necesario si la librería no extrae el url del metadata correctamente)
+        deleted = 0
         for source in existing:
             source_url = source.get('url') or ''
-            if f'/raw/{subject}' in source_url:
-                print(f"  [-] Borrando fuente antigua: {source_url or source['id']}")
+            source_title = source.get('title') or ''
+            should_delete = (
+                f'/raw/{subject}' in source_url
+                or (not source_url and (f'/raw/{subject}' in source_title or 'netlify.app' in source_title))
+            )
+            if should_delete:
+                print(f"  [-] Borrando fuente antigua: url={source_url!r} | title={source_title!r}")
                 client.delete_source(source['id'])
+                deleted += 1
+
+        if deleted == 0:
+            if existing:
+                print(f"  [!] ADVERTENCIA: ninguna fuente matcheó '/raw/{subject}' — la URL vieja puede no haberse borrado")
+            else:
+                print(f"  [i] No hay fuentes existentes — se agrega nueva directamente")
 
         # 3. Agregar URL actualizada
         print(f"  [+] Agregando: {raw_url}")
