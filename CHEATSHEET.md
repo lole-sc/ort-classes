@@ -151,12 +151,43 @@ pip install requests beautifulsoup4 openai notebooklm-mcp
 Sin Flask, sin Playwright. Pinecone se llama vía `requests` directamente.
 
 ### Renovar auth de NotebookLM (cuando las cookies expiran ~2-4 semanas)
+Cuando las cookies expiran, el pipeline falla y llega un Telegram de error. Ahí es cuando
+hay que renovar:
 ```bash
 notebooklm-mcp-auth   # abre Chrome real → login normal con Google
-cat ~/.notebooklm-mcp/auth.json | gh secret set NOTEBOOKLM_AUTH_JSON --repo lorenzoscaldaferro/ort-classes
+cat ~/.notebooklm-mcp/auth.json | gh secret set NOTEBOOKLM_AUTH_JSON --repo lole-sc/ort-classes
 ```
 
-### Build de la UI (Netlify lo corre automáticamente en cada push)
+### Setup inicial de Telegram (hacer una sola vez)
+
+Las notificaciones van a un chat tuyo vía un bot de Telegram. Pasos:
+
+**1. Crear el bot (1 minuto en Telegram)**
+- Abrir Telegram → buscar `@BotFather` → `/newbot`
+- Ponerle un nombre (ej: `ORT Scraper`) y un username (ej: `ort_scraper_lole_bot`)
+- BotFather te da un token: `123456:ABCdef...` — guardarlo
+
+**2. Obtener tu chat_id**
+- Buscar tu bot recién creado en Telegram y mandarle cualquier mensaje
+- Abrir en el navegador (reemplazando TOKEN): `https://api.telegram.org/botTOKEN/getUpdates`
+- En la respuesta JSON buscar `"id"` dentro de `"chat"` — ese es tu chat_id (ej: `12345678`)
+
+**3. Agregar los secrets a GitHub**
+```bash
+gh secret set TELEGRAM_BOT_TOKEN --repo lole-sc/ort-classes
+# pegar el token cuando lo pida
+
+gh secret set TELEGRAM_CHAT_ID --repo lole-sc/ort-classes
+# pegar el chat_id cuando lo pida
+```
+
+O desde la UI: GitHub → repo `ort-classes` → Settings → Secrets and variables → Actions.
+
+**Qué notificaciones llegan:**
+- Cada noche de lunes a jueves (si el run fue exitoso): `ORT Scraper - DD/MM/YYYY\nNuevas: materia +N`
+- Si el pipeline falla (error de Vimeo, cookies vencidas, etc.): `ORT Scraper FALLO — revisá GitHub Actions`
+
+### Build de la UI (Vercel lo corre automáticamente en cada push)
 ```bash
 cd /Users/lolescaldaferro/Antigravity/Vimeo/cloud_production/ui
 npm install

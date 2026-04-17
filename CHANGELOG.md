@@ -2,6 +2,43 @@
 
 All notable changes to the ORT Vimeo Scraper & RAG Knowledge Base project will be documented in this file.
 
+## [Feat] - 2026-04-17 (Confiabilidad y observabilidad del pipeline)
+
+### Qué se agregó
+
+**1. Retry automático en descargas HTTP** (`vimeo_scraper.py`)
+Nueva función `_http_get_retry()`: si una descarga de subtítulos VTT, un fetch de config del
+player, o una llamada a la API de Vimeo falla por red o error 5xx, reintenta hasta 3 veces
+con espera exponencial (0s → 1s → 2s). Antes, un solo fallo de red descartaba la clase sin
+reintentar.
+
+**2. Resumen de run** (`vimeo_scraper.py`)
+Al terminar cada ejecución, el scraper escribe `run_summary.json` con cuántas transcripciones
+nuevas encontró por materia. Usado por el step de notificación de Telegram.
+
+**3. Fallos explícitos en NotebookLM sync** (`notebooklm_sync.py`)
+Antes, si las cookies de NotebookLM expiraban o algún notebook fallaba en sincronizar, el
+script terminaba limpiamente y el workflow decía "success". Ahora llama `sys.exit(1)` en
+esos casos, lo que dispara la notificación de Telegram de fallo. Efectos:
+- Cookies vacías o ausentes → exit(1)
+- Env vars faltantes en CI → exit(1)
+- Uno o más notebooks fallaron → exit(1) con instrucciones de cómo renovar la auth
+
+**4. Notificación Telegram en runs exitosos** (`scraper.yml`)
+Nuevo step al final del pipeline (solo si todo salió bien) que manda un mensaje Telegram con
+el resumen del run, ej:
+```
+ORT Scraper - 21/04/2026
+Nuevas: contabilidad +1, economia +1
+```
+Antes solo llegaba Telegram cuando el workflow fallaba por completo.
+
+### Pasos manuales requeridos (ver CHEATSHEET — sección Telegram)
+Para que las notificaciones Telegram funcionen se necesita configurar un bot y agregar
+`TELEGRAM_BOT_TOKEN` y `TELEGRAM_CHAT_ID` como GitHub Secrets.
+
+---
+
 ## [Fixed] - 2026-04-17 (Orden cronológico en raw files)
 
 ### Qué estaba roto
