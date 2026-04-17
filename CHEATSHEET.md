@@ -183,9 +183,54 @@ gh secret set TELEGRAM_CHAT_ID --repo lole-sc/ort-classes
 
 O desde la UI: GitHub → repo `ort-classes` → Settings → Secrets and variables → Actions.
 
-**Qué notificaciones llegan:**
-- Cada noche de lunes a jueves (si el run fue exitoso): `ORT Scraper - DD/MM/YYYY\nNuevas: materia +N`
-- Si el pipeline falla (error de Vimeo, cookies vencidas, etc.): `ORT Scraper FALLO — revisá GitHub Actions`
+O desde la UI: GitHub → repo `ort-classes` → Settings → Secrets and variables → Actions.
+
+---
+
+## Telegram — cómo funciona el sistema de notificaciones
+
+El bot `@ort_classes_bot` manda mensajes a tu chat personal en dos situaciones:
+
+### 1. Run exitoso (lunes a jueves, ~20:05 UYT)
+
+Llega automáticamente después de cada ejecución exitosa del pipeline. Muestra cuántas clases nuevas encontró esa noche:
+
+```
+ORT Scraper - 21/04/2026
+Nuevas: contabilidad +1, economia +1
+```
+
+Si hubo clase pero el video ya estaba descargado de antes:
+```
+ORT Scraper - 22/04/2026
+Sin clases nuevas hoy
+```
+
+**Frecuencia**: lunes a jueves. No corre los viernes, sábados ni domingos — esos días no llega nada y es normal.
+
+### 2. Fallo del pipeline (cuando algo se rompe)
+
+Llega si cualquier parte del pipeline falla: error de Vimeo, cookies de NotebookLM vencidas, fallo de red persistente, etc.
+
+```
+ORT Scraper FALLO — 2026-04-21 23:05 UTC. Revisa GitHub Actions.
+```
+
+**Qué hacer al recibirlo**: ir a GitHub → repo `ort-classes` → Actions → ver el log del último run para identificar qué paso falló. El error más frecuente es que las cookies de NotebookLM vencieron — en ese caso ver "Renovar auth de NotebookLM" más arriba.
+
+### Resumen visual
+
+```
+Lun  20:00 UYT → pipeline corre → 20:05 UYT llega mensaje
+Mar  20:00 UYT → pipeline corre → 20:05 UYT llega mensaje
+Mié  20:00 UYT → pipeline corre → 20:05 UYT llega mensaje
+Jue  20:00 UYT → pipeline corre → 20:05 UYT llega mensaje
+Vie  —          (no corre, normal que no llegue nada)
+```
+
+Si un día de semana no llega mensaje → el pipeline no corrió o falló antes del step de notificación → revisar GitHub Actions.
+
+---
 
 ### Build de la UI (Vercel lo corre automáticamente en cada push)
 ```bash
