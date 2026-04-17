@@ -2,6 +2,29 @@
 
 All notable changes to the ORT Vimeo Scraper & RAG Knowledge Base project will be documented in this file.
 
+## [Fixed] - 2026-04-17 (Orden cronológico en raw files)
+
+### Qué estaba roto
+`generate_raw_files.py` usaba `sorted()` puro sobre los nombres de archivo con formato `DD-MM-YYYY`. El orden alfabético por día-primero mezclaba marzo y abril: `07-04` aparecía antes que `10-03`, `17-03`, etc.
+
+### Fix aplicado
+Se reemplazó el `sorted()` por una key que parsea la fecha y construye una tupla `(YYYY, MM, DD)` para ordenar cronológicamente:
+
+```python
+def _date_key(fname):
+    m = re.match(r'(\d{2})-(\d{2})-(\d{4})', fname)
+    if m:
+        day, month, year = m.groups()
+        return (year, month, day)
+    return ('0000', '00', '00')
+
+files = sorted([...], key=_date_key)
+```
+
+El efecto se aplica en el próximo run de Actions (lunes 20/04 a las 20:00 UYT), que regenera todos los raw files desde cero.
+
+---
+
 ## [Fixed] - 2026-03-27 (Transcripts limpios — duplicados y fechas incorrectas eliminados)
 
 ### Estado final semestre 5 (27-03-2026)
