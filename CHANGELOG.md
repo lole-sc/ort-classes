@@ -2,6 +2,35 @@
 
 All notable changes to the ORT Vimeo Scraper & RAG Knowledge Base project will be documented in this file.
 
+## [Feat] - 2026-05-01 (Warnings de videos sin transcripción en Telegram)
+
+### Contexto
+El 30/04/2026 el scraper encontró la clase de Economía y Gestión (video ID `1188206158`) pero no guardó la transcripción — el player config del video traía `text_tracks` vacío, probablemente porque Vimeo aún no había terminado de procesar los captions automáticos cuando el pipeline corrió a las 23:00 UTC. La notificación Telegram dijo "+1" (solo contabilidad), lo cual era técnicamente correcto pero sin diagnóstico del problema.
+
+### Qué se agregó
+
+**`vimeo_scraper.py`**
+- Nueva lista global `_run_warnings`: registra cada video que fue encontrado pero no guardado, con los campos `subject`, `video_id`, `title`, `date`, y `reason`.
+- `reason` puede ser:
+  - `no_player_config` — ni Layer 1 (intercepción), ni Layer 2 (cookie fetch), ni Layer 3 (click) lograron obtener el config del player
+  - `empty_text_tracks` — el config se obtuvo pero `request.text_tracks` estaba vacío (captions no disponibles aún, o video sin subtítulos)
+  - `vtt_download_failed` — el VTT existía pero la descarga falló (error de red o HTTP ≠ 200)
+- Los warnings se incluyen en `run_summary.json` bajo la clave `warnings`.
+
+**`.github/workflows/scraper.yml`**
+- La notificación Telegram de éxito ahora incluye un bloque `⚠️ Videos sin transcripción:` cuando `warnings` no está vacío, con una línea por video afectado:
+  ```
+  ORT Scraper - 30/04/2026
+  Nuevas: contabilidad_y_costos +1
+  ⚠️ Videos sin transcripción:
+    • economia_y_gestion [30-04-2026]: sin captions
+  ```
+
+### También
+Run manual disparado el 01/05/2026 para reintentar el video de Economía del 30/04. Si los captions ya están disponibles en Vimeo, la transcripción queda guardada en ese run.
+
+---
+
 ## [Fixed] - 2026-04-17 (Orden cronológico en UI + limpieza gitignore)
 
 ### Qué estaba roto
