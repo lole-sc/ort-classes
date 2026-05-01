@@ -2,32 +2,53 @@
 
 All notable changes to the ORT Vimeo Scraper & RAG Knowledge Base project will be documented in this file.
 
-## [Feat] - 2026-05-01 (Warnings de videos sin transcripción en Telegram)
+## [Feat] - 2026-05-01 (Observabilidad + silenciado automático de videos sin captions)
 
 ### Contexto
-El 30/04/2026 el scraper encontró la clase de Economía y Gestión (video ID `1188206158`) pero no guardó la transcripción — el player config del video traía `text_tracks` vacío, probablemente porque Vimeo aún no había terminado de procesar los captions automáticos cuando el pipeline corrió a las 23:00 UTC. La notificación Telegram dijo "+1" (solo contabilidad), lo cual era técnicamente correcto pero sin diagnóstico del problema.
+El 30/04/2026 el scraper encontró la clase de Economía y Gestión (video ID `1188206158`) pero no guardó la transcripción — el player config traía `text_tracks` vacío porque Vimeo todavía no había terminado de procesar los captions automáticos cuando el pipeline corrió a las 23:00 UTC. La notificación Telegram solo dijo "+1 contabilidad", lo cual era correcto pero sin diagnóstico.
 
-### Qué se agregó
+En el re-run manual del 01/05, el sistema nuevo detectó además un segundo video sin captions: contabilidad_y_costos del 21/04 (día de evaluación — no hubo clase). Ese video aparecería como warning en **cada corrida futura**, generando ruido permanente.
 
-**`vimeo_scraper.py`**
-- Nueva lista global `_run_warnings`: registra cada video que fue encontrado pero no guardado, con los campos `subject`, `video_id`, `title`, `date`, y `reason`.
-- `reason` puede ser:
-  - `no_player_config` — ni Layer 1 (intercepción), ni Layer 2 (cookie fetch), ni Layer 3 (click) lograron obtener el config del player
-  - `empty_text_tracks` — el config se obtuvo pero `request.text_tracks` estaba vacío (captions no disponibles aún, o video sin subtítulos)
-  - `vtt_download_failed` — el VTT existía pero la descarga falló (error de red o HTTP ≠ 200)
-- Los warnings se incluyen en `run_summary.json` bajo la clave `warnings`.
+### Qué se implementó
 
-**`.github/workflows/scraper.yml`**
-- La notificación Telegram de éxito ahora incluye un bloque `⚠️ Videos sin transcripción:` cuando `warnings` no está vacío, con una línea por video afectado:
-  ```
-  ORT Scraper - 30/04/2026
-  Nuevas: contabilidad_y_costos +1
-  ⚠️ Videos sin transcripción:
-    • economia_y_gestion [30-04-2026]: sin captions
-  ```
+**1. Tracking de videos fallidos** (`vimeo_scraper.py`)
 
-### También
-Run manual disparado el 01/05/2026 para reintentar el video de Economía del 30/04. Si los captions ya están disponibles en Vimeo, la transcripción queda guardada en ese run.
+Nueva lista global `_run_warnings` que registra cada video encontrado pero no guardado:
+
+| `reason` | Significado | Comportamiento |
+|---|---|---|
+| `no_player_config` | No se obtuvo el config del player (ninguna de las 3 capas funcionó) | Reintenta en el próximo run — puede ser transitorio |
+| `empty_text_tracks` | Config obtenido pero sin subtítulos — video genuinamente sin captions | Crea stub file para silenciar runs futuros |
+| `vtt_download_failed` | VTT existía pero falló la descarga (red o HTTP ≠ 200) | Reintenta en el próximo run |
+
+Los warnings se incluyen en `run_summary.json` bajo la clave `warnings`.
+
+**2. Notificación Telegram con diagnóstico** (`.github/workflows/scraper.yml`)
+
+Cuando hay warnings, la notificación de éxito incluye un bloque detallado:
+```
+ORT Scraper - 01/05/2026
+Nuevas: economia_y_gestion +1
+⚠️ Videos sin transcripción:
+  • contabilidad_y_costos [21-04-2026]: sin captions
+```
+
+**3. Stub automático para videos sin captions** (`vimeo_scraper.py`)
+
+Cuando se confirma `empty_text_tracks` (el video genuinamente no tiene subtítulos en Vimeo — parciales, material administrativo, etc.), el scraper crea un archivo `.md` mínimo en la ruta correspondiente:
+```
+transcripts/semestre_5/{subject}/DD-MM-YYYY - {title}.md
+# Sin captions
+Video ID: {vid_id}
+```
+El check de "already exists" lo detecta en todas las corridas siguientes y lo salta silenciosamente, sin generar más warnings. El warning aparece **solo la primera vez**.
+
+Esto generaliza automáticamente: si en el futuro hay otro parcial o video sin captions en cualquier materia, el mecanismo aplica sin intervención manual.
+
+### Resultado verificado
+
+- Re-run manual `25234727191` (01/05/2026): recuperó la clase de Economía del 30/04 exitosamente (captions disponibles a esa altura). Guardada + ingestada en Pinecone (20 vectores).
+- Stub creado manualmente para contabilidad 21/04 (ID `1185395740`) — día de evaluación. No generará más warnings.
 
 ---
 
