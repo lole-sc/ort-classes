@@ -463,7 +463,10 @@ def _extract_vtt_playwright(showcase_url, password, subject_name, semester):
 
             text_tracks = config.get('request', {}).get('text_tracks', [])
             if not text_tracks:
-                print(f"    [-] No text tracks for this video")
+                print(f"    [-] No text tracks — creating stub to suppress future warnings")
+                os.makedirs(os.path.dirname(filepath), exist_ok=True)
+                with open(filepath, 'w', encoding='utf-8') as f:
+                    f.write(f"# Sin captions\n\nVideo ID: {vid_id}\n")
                 _run_warnings.append({
                     'subject': subject_name,
                     'video_id': vid_id,
